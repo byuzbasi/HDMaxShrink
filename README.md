@@ -162,7 +162,7 @@ the same training-fit scaling rule.
 
 For the Gaussian-iid design, the default test uses the exact-null residual.
 Let $`M_A=I-X_A^s(X_A^s)^+`$, $`r_A=M_Ay^s`$,
-$`d=n-1-\operatorname{rank}(X_A^s)`$, and
+$`d=n-1-\mathrm{rank}(X_A^s)`$, and
 $`z_j=M_AX^s_{B,j}`$. Then
 
 ```math
@@ -277,9 +277,9 @@ L(\widehat\beta,\beta)=\|\widehat\beta-\beta\|_2^2
 and
 
 ```math
-\operatorname{RPE}(m)=
-\frac{\operatorname{MSE}(\widehat\beta^{FM})}
-{\operatorname{MSE}(\widehat\beta^{m})}.
+\mathrm{RPE}(m)=
+\frac{\mathrm{MSE}(\widehat\beta^{FM})}
+{\mathrm{MSE}(\widehat\beta^{m})}.
 ```
 
 With a fixed all-$`X`$ Ridge penalty and full-vector coefficient loss, SM RPE
