@@ -1,0 +1,254 @@
+---
+title: "Exact-Null Max-Calibrated Shrinkage When p Is Much Larger Than n"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Exact-Null Max-Calibrated Shrinkage When p Is Much Larger Than n}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+~~~{r, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+~~~
+
+HDMaxShrink considers
+
+\[
+y=X_A\beta_A+X_B\beta_B+\varepsilon,
+\qquad H_0:\beta_B=0,
+\]
+
+where \(p_1=|A|<n\), \(p=p_1+q\) may greatly exceed \(n\), and the tested
+block may itself satisfy \(q>n\). The partition must be prespecified
+independently of the response used for inference.
+
+## Independently selected CPSS core
+
+Version 0.6.2 preserves the version 0.6.1 statistical API and uses
+singleton-group `grpreg` MCP for the optional CPSS--MCP sensitivity path.
+Version 0.6.1 added portable linkage for the compiled numerical kernels. The
+version 0.6.0 workflow can
+learn an optional extension to a mandatory core on an
+independent selection sample using complementary-pairs stability selection
+(CPSS):
+
+~~~{r, eval = FALSE}
+selection <- cpss_select_core(
+  X_selection, y_selection,
+  selector = "lasso",
+  complementary_pairs = 50,
+  base_selection_size = 20,
+  stability_threshold = 0.60,
+  seed = 20260825,
+  mandatory_core = c("lineage_2", "lineage_3", "MSIScore"),
+  candidate_set = grep("^expr::", colnames(X_selection))
+)
+
+fit <- fit_cpss_ridge_shrinkage(
+  X_analysis, y_analysis,
+  selection = selection,
+  ridge_lambda = 0.25,
+  bootstrap_B = 999,
+  bootstrap_seed = 20260826
+)
+~~~
+
+Within every complementary half-sample, the mandatory design is centered and
+projected out by an economy SVD before LASSO or MCP is fitted to the optional
+candidate family. Mandatory variables are not CPSS discoveries and do not
+enter the CPSS PFER denominator. The final core is the union of the mandatory
+set and the thresholded CPSS extension; an empty extension leaves the
+mandatory core unchanged without a top-k fallback.
+
+This defines the CPSS-guided exact-null submodel
+
+\[
+\widehat\beta^{CPSS\text{-}SM}_{\widehat A}
+=(X_{\widehat A}^{s})^+y^s,
+\qquad
+\widehat\beta^{CPSS\text{-}SM}_{\widehat A^c}=0,
+\]
+
+and an all-\(X\) direct dual-Ridge FM. The max-partial-\(t\) test is computed
+from the exact-null SM residual rather than from Ridge. CPSS is due to Shah and
+Samworth (2013); the package contribution is the CPSS--SM/Ridge/max-shrinkage
+composition, not CPSS itself. CPSS--LASSO is the primary selector and
+CPSS--MCP is a sensitivity selector. Singleton groups make its group MCP
+penalty the ordinary coordinatewise MCP penalty. Because `grpreg` does not
+expose a local-convexity index, the compatibility field is `NA` and no
+local-convexity claim is made.
+Selection and analysis samples must be independent for the conditional test
+argument. A threshold at or below one half is only an exploratory frequency
+screen and carries no PFER claim.
+
+## Full and submodel estimators
+
+Within each training fit, center and RMS-scale every retained predictor and the
+response:
+
+\[
+X^s_{ij}=\frac{X_{ij}-\bar X_j}{s_j},\qquad
+y_i^s=\frac{y_i-\bar y}{s_y}.
+\]
+
+The primary FM estimator is one joint all-\(X\) square-root LASSO:
+
+\[
+\widehat b^{FM}\in\arg\min_{b\in\mathbb R^p}
+\left\{\frac{\|y^s-X^sb\|_2}{\sqrt n}
++\lambda\sum_{j=1}^p\omega_j|b_j|\right\},\qquad \omega_j>0.
+\]
+
+Every one of the \(p\) coefficients is estimated and penalized in this single
+optimization. The standardized intercept is exactly zero. Coefficients are
+returned on the original scale as
+\(\widehat\beta_j=s_y\widehat b_j/s_j\), with original-scale intercept
+\(\bar y-\bar X^\top\widehat\beta\).
+
+The fresh submodel refit under the null is
+
+\[
+\widehat b^{SM}=((X_A^s)^+y^s,0_q).
+\]
+
+This is a genuine restricted refit: its core coordinates generally differ
+from those of FM. It is not obtained by copying the FM core, and no true active
+set is provided. The implementation computes \(X_A^+\) from an economy SVD
+after checking numerical rank. It never assumes that an OLS Gram inverse
+exists.
+
+## High-dimensional maximum test
+
+The all-X FM optimization does not determine the null-test statistic. The test
+starts from the exact-null residual. Let
+
+\[
+M_A=I-X_A^s(X_A^s)^+,\qquad
+d=n-1-\operatorname{rank}(X_A^s),\qquad
+z_j=M_AX^s_{B,j},\qquad r_0=M_Ay^s,
+\]
+
+and define
+
+\[
+T_{\mathrm{score}}
+=\max_{j\in B}
+\frac{|z_j^\top r_0|}
+{\|z_j\|_2\sqrt{\|r_0\|_2^2/d}},
+\qquad
+T_{\max,t}=\sqrt{
+\frac{(d-1)T_{\mathrm{score}}^2}
+{d-T_{\mathrm{score}}^2}}.
+\]
+
+Under the exact null, homoskedastic Gaussian errors, and a prespecified core,
+Gaussian draws are centered and projected off the same core. Applying the same
+monotone transform to the observed and simulated maxima leaves the Monte Carlo
+p-value and PT decision unchanged. This is conditional Gaussian Monte Carlo
+calibration, not a residual multiplier bootstrap. No direct chi-square limit,
+joint \(F(q,d-1)\) law, or \(q\times q\) covariance inversion is used. Put
+
+\[
+\widehat\kappa=
+\left\{B^{-1}\sum_{b=1}^B
+(T_{\max,t}^{*(b)})^{-2}\right\}^{-1}.
+\]
+
+The resulting positive-part estimator is
+
+\[
+\widehat\beta^{PS}
+=\widehat\beta^{SM}
++\left[1-\frac{\widehat\kappa}
+{T_{\max,t}^2\vee\epsilon}\right]_+
+(\widehat\beta^{FM}-\widehat\beta^{SM}).
+\]
+
+The untruncated Stein and preliminary-test variants are returned as S and PT.
+Classical James--Stein dominance is not asserted for the max calibration.
+
+## Reproducible template
+
+~~~{r, eval = FALSE}
+set.seed(20260820)
+n <- 100
+p <- 1000
+p1 <- 20
+X <- matrix(rnorm(n * p), n, p)
+beta <- numeric(p)
+core_pattern <- c(
+  1.50, 1.25, 1.00, 0.90, 0.80,
+  -1.25, -1.00, -0.90, 0.75, -0.75
+)
+beta[1:20] <- rep(core_pattern, 2)
+y <- drop(X %*% beta + rnorm(n))
+
+fit <- fit_partial_sqrt_lasso_shrinkage(
+  X,
+  y,
+  core_set = 1:p1,
+  tested_set = (p1 + 1):p,
+  full_endpoint = "all_x_square_root_lasso",
+  all_x_penalty_loadings = rep(1, p),
+  standardize_y = TRUE,
+  bootstrap_B = 499,
+  bootstrap_seed = 20260820
+)
+
+print(fit)
+coef(fit, method = "FM")
+coef(fit, method = "SM")
+coef(fit, method = "PT")
+coef(fit, method = "S")
+coef(fit, method = "PS")
+~~~
+
+Here all 20 coordinates in the prespecified core are active. Under the exact
+null, SM is the intended correct-restriction benchmark; its construction uses
+the prespecified partition, not a separately supplied true-support vector.
+
+The all-X FM endpoint does not require diagonal population precision.
+Conditional on a fixed design, the exact-null test does not itself require
+independent design columns, but its finite-sample exactness does require the
+prespecified core and iid homoskedastic Gaussian errors under the null.
+
+## Simulation risk
+
+The paper simulation uses the full coefficient loss
+
+\[
+\|\widehat\beta-\beta\|_2^2,
+\]
+
+and reports
+
+\[
+\operatorname{RPE}(m)=
+\frac{\operatorname{MSE}(FM)}{\operatorname{MSE}(m)}.
+\]
+
+This convention makes the exact-null SM curve tend toward zero under large
+\(\Delta=\|\beta_B\|_2\). When \(T_{\max}\) diverges, the S and PS weights
+approach one, the estimators approach FM, and their RPE approaches one.
+
+## Retained modes
+
+The package still contains fit_ridge_mcp_shrinkage() and the earlier
+fit_hd_shrinkage() projection/Wald implementation. They are retained for
+sensitivity analysis and reproducibility. The thresholded partial-debiased and
+profiled partial square-root-LASSO endpoints also remain explicit options.
+They remain available alongside the version 0.5.0 CPSS--SM/Ridge extension.
+
+## Methodological references
+
+- Meinshausen, N. and Buehlmann, P. (2010). Stability selection. *JRSS B*,
+  72, 417--473. doi:10.1111/j.1467-9868.2010.00740.x.
+- Shah, R. D. and Samworth, R. J. (2013). Variable selection with error
+  control: another look at stability selection. *JRSS B*, 75, 55--80.
+  doi:10.1111/j.1467-9868.2011.01034.x.
+- Belloni, A. and Chernozhukov, V. (2013). Least squares after model selection
+  in high-dimensional sparse models. *Bernoulli*, 19, 521--547.
+  doi:10.3150/11-BEJ410.
+- Dufour, J.-M. (2006). Monte Carlo tests with nuisance parameters.
+  *Journal of Econometrics*, 133, 443--477.
+  doi:10.1016/j.jeconom.2005.06.007.

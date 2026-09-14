@@ -1,0 +1,15 @@
+citHeader("To cite HDMaxShrink in publications, use:")
+
+bibentry(
+  bibtype = "Manual",
+  title = "HDMaxShrink: Test-Guided Shrinkage for High-Dimensional Linear Models",
+  author = person("Bahadir", "Yuzbasi"),
+  year = "2026",
+  note = paste("R package version", meta$Version)
+)
+
+citFooter(paste(
+  "The CPSS implementation builds on Shah and Samworth (2013),",
+  "doi:10.1111/j.1467-9868.2011.01034.x, and Meinshausen and",
+  "Buehlmann (2010), doi:10.1111/j.1467-9868.2010.00740.x."
+))

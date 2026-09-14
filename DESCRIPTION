@@ -1,0 +1,46 @@
+Package: HDMaxShrink
+Type: Package
+Title: Test-Guided Shrinkage for High-Dimensional Linear Models
+Version: 0.6.2
+Authors@R: 
+    person("Bahadir", "Yuzbasi", email = "b.yzb@hotmail.com",
+           role = c("aut", "cre"))
+Author: Bahadir Yuzbasi [aut, cre]
+Maintainer: Bahadir Yuzbasi <b.yzb@hotmail.com>
+Description: Fits test-guided shrinkage estimators in sparse linear models
+    where the number of predictors may exceed the sample size. Version 0.6.2
+    preserves the version 0.6.1 statistical API and implements the optional
+    CPSS--MCP sensitivity path with singleton-group MCP from 'grpreg', using
+    the same documented relative lower penalty bound as CPSS--LASSO. Version
+    0.6.1 added portable
+    LAPACK/BLAS/Fortran linkage for the compiled RcppArmadillo kernels.
+    Version 0.6.0 added mandatory-core conditional complementary-pairs stability selection,
+    an exact-null low-dimensional SVD submodel refit, and an
+    all-predictor dual-Ridge full endpoint. Their difference is combined by a
+    conditional Gaussian maximum partial-t test to form preliminary-test,
+    Stein-type, positive-part, and pretest-protected positive-part estimators.
+    The earlier joint all-predictor square-root-LASSO framework remains
+    available. Within each fit,
+    predictor columns and the response are centered and root-mean-square
+    scaled, the standardized intercept is fixed at zero, and returned
+    coefficients are on the original scale. A conditional Gaussian maximum
+    partial-t test and an inverse-null-moment calibration define the
+    interpolation weights. Economy SVD and compiled
+    RcppArmadillo kernels avoid ordinary-least-squares Gram inverses, q by q
+    covariance inverses, and p by p inverses. Earlier partial, Ridge--MCP, and
+    restriction-projection frameworks remain available as sensitivity and
+    reproducibility modes.
+License: GPL (>= 3)
+URL: https://github.com/byuzbasi/HDMaxShrink
+BugReports: https://github.com/byuzbasi/HDMaxShrink/issues
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: glmnet, Rcpp, stats
+LinkingTo: Rcpp, RcppArmadillo
+Suggests: ggplot2, knitr, grpreg, rmarkdown, testthat (>= 3.0.0)
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+SystemRequirements: C++17
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
+NeedsCompilation: yes

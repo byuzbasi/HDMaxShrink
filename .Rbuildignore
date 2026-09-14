@@ -1,0 +1,11 @@
+^HDMaxShrink\.Rproj$
+^\.Rproj\.user$
+^README\.Rmd$
+^cran-comments\.md$
+^doc$
+^Meta$
+^.*\.DS_Store$
+^src/.*\.(o|so|dll|dylib)$
+^src/symbols\.rds$
+^\.git$
+^\.gitignore$
