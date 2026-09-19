@@ -260,7 +260,7 @@ null, SM is the intended correct-restriction benchmark; the estimator is not
 given the support separately and only receives the scientifically specified
 core/tested partition.
 
-The all-X FM endpoint does not require a diagonal population-precision
+The full-model endpoint does not require a diagonal population-precision
 assertion. Conditional on fixed $`X`$, the exact-null max-partial-$`t`$ test
 needs a prespecified core, nondegenerate residualized tested directions, and
 homoskedastic Gaussian errors; it does not require independent columns of
@@ -282,18 +282,18 @@ and
 {\mathrm{MSE}(\widehat\beta^{m})}.
 ```
 
-With a fixed all-$`X`$ Ridge penalty and full-vector coefficient loss, SM RPE
+With a fixed Ridge penalty and full-vector coefficient loss, SM RPE
 need not tend to zero.  Both Ridge FM and a misspecified SM can have
 quadratic-in-signal loss because Ridge retains null-space bias when $`p>n`$;
 SM RPE then approaches a positive design-specific plateau.  The max-Stein
 estimators should still approach FM and hence RPE one when their
-data-dependent weight approaches one.  A sparse all-$`X`$ LASSO sensitivity
+data-dependent weight approaches one.  A sparse LASSO full-model sensitivity
 may recover a strong sparse departure and produce an SM RPE close to zero,
 but it is a different FM endpoint with additional assumptions.
 
 ## Retained research modes
 
-- `fit_ridge_mcp_shrinkage()` retains the version 0.2.0 all-$`X`$
+- `fit_ridge_mcp_shrinkage()` retains the version 0.2.0
   Ridge--MCP sensitivity framework.
 - `fit_hd_shrinkage()` retains the earlier square-root-LASSO restriction
   projection and small-$`q`$ Wald branch for reproducibility.
@@ -316,6 +316,14 @@ and tests. GitHub metadata, installation guidance and a small example were
 added for distribution; the original study's versioned source archives remain
 unchanged. This repository contains the R package, not raw data, manuscript
 submission files or the full study's execution checkpoints.
+
+The reported DepMap application used HDMaxShrink 0.6.0 with `ncvreg` 3.16.0;
+the fixed-core simulation used HDMaxShrink 0.6.1; and the honest-selection
+audit used HDMaxShrink 0.6.2 with `grpreg` 3.6.0. Reproduce each study with its
+recorded frozen release and dependencies. In particular, the historical
+DepMap local-convexity diagnostic is not an output of the current `grpreg`
+backend. Preserving an API does not imply identical numerical paths across
+different MCP solvers.
 
 ## Documentation and support
 
