@@ -43,12 +43,18 @@ source(system.file("examples", "quickstart.R", package = "HDMaxShrink"))
 
 The example generates 1,000 predictors with independent selection and analysis
 samples of 100 observations each, plus 200 untouched test observations. It prints
-the selected submodel, test diagnostics and FM/SM/PT/S/PS results, and draws a
-test-error plot in an interactive R session. It is one toy dataset, not a
+the selected submodel, coefficient counts, test diagnostics and FM/SM/PT/S/PS
+results. In an interactive R session it also draws a three-panel figure showing
+selection frequencies, held-out errors and coefficient estimates. It is one toy dataset, not a
 reproduction of the manuscript's production study. The complete script is
 [quickstart.R](inst/examples/quickstart.R); the steps below can also be run in order.
 
 ## Current workflow: CPSS-guided submodel and Ridge full model
+
+![CPSS selects x6 in 26 of 40 half-samples in addition to mandatory x1 and x2; held-out errors compare FM, SM, PT, S and PS; the first 20 coefficients show truth and estimates.](man/figures/quickstart_test_mse.png)
+
+One fixed-seed example, from selection to held-out evaluation. The steps below
+reproduce these results; no production study is needed to try the workflow.
 
 ### 1. Generate data with known coefficients
 
@@ -102,6 +108,86 @@ In the reference run, the selected core is `x1, x2, x6`. The first two are
 mandatory, with `NA` selection frequencies; `x6` is a CPSS extension with
 frequency 0.650. Thus the selected submodel still omits seven true signals.
 
+#### How CPSS chooses the variables
+
+Complementary pairs stability selection (CPSS) is an established procedure
+of [Shah and Samworth (2013)](https://doi.org/10.1111/j.1467-9868.2011.01034.x),
+building on [Meinshausen and Buehlmann (2010)](https://doi.org/10.1111/j.1467-9868.2010.00740.x).
+Here it builds the submodel **before** estimation and testing on independent
+data. It is not variable selection by the final Ridge fit.
+
+1. **Separate prior information from selection.** The mandatory set
+   $`A_0=\{1,2\}`$ is fixed before looking at the data. In this Gaussian example,
+   the eligible optional candidates are $`\mathcal C=\{3,\ldots,1000\}`$.
+   Only the selection sample is supplied to CPSS; neither the true coefficients
+   nor the analysis/test responses are used.
+2. **Form complementary half-samples.** Each of 20 random splits divides the
+   100 selection observations into two disjoint halves of 50. Fit a base
+   selector on both halves, giving 40 fits. The same observations recur across
+   pairs: these are not 40 independent datasets.
+3. **Select an optional extension in each half.** Center and project the
+   response and optional columns off the mandatory design within that half,
+   then fit a 30-point LASSO path. The implemented rule takes the largest
+   nonempty support with at most 10 optional predictors; ties use the larger
+   penalty. If no admissible nonempty support exists, that half selects none.
+   This is a size-budget rule, not cross-validation. This selection-stage
+   residualization does **not** split or partially penalize the final Ridge FM.
+4. **Count selections and threshold.** Keep an optional predictor if it occurs
+   in at least 60% of the 40 fits, and add it to the mandatory set. There is no
+   top-k fallback and no requirement to end with 10 predictors.
+
+Specifically, let $`K=20`$ be the number of complementary pairs,
+$`S_{k,h}\subseteq\mathcal C`$ the optional set selected in half $`h\in\{1,2\}`$
+of pair $`k`$, and $`\mathbf 1\{\cdot\}`$ the indicator of an event. The empirical
+selection frequency counts how often each eligible optional predictor is retained:
+
+```math
+\widehat\pi_j=\frac{1}{2K}\sum_{k=1}^{K}
+\left[\mathbf 1\{j\in S_{k,1}\}+\mathbf 1\{j\in S_{k,2}\}\right],
+\qquad j\in\mathcal C.
+```
+
+With the prespecified threshold $`\tau=0.60`$, the submodel index set is
+
+```math
+\widehat A=A_0\cup\{j\in\mathcal C:\widehat\pi_j\ge\tau\},
+\qquad p_1=|\widehat A|,\qquad q=p-p_1.
+```
+
+This union retains prior predictors even if no optional predictor passes.
+Here `x6` passes with 26/40 selections; the minimum is 24/40. Mandatory
+predictors `x1` and `x2` have frequency `NA`, not an estimated frequency of one.
+The realized submodel size is therefore **3, not 10**. The 10-variable budget
+applies separately to each half-fit. Inspect the ranking and counts with:
+
+```r
+optional_table <- selection$stability_table[
+  is.finite(selection$stability_table$stability_frequency), , drop = FALSE
+]
+optional_table$half_sample_selections <- as.integer(round(
+  optional_table$stability_frequency * 2L * selection$complementary_pairs
+))
+head(optional_table[, c("feature", "half_sample_selections",
+                       "stability_frequency", "selected_for_core")], 10L)
+```
+
+A frequency is not a p-value or a posterior probability that a coefficient
+is nonzero. The threshold is a selection-design choice, not a universal optimum;
+raising it generally makes the extension smaller, and lowering it can admit
+less stable predictors. Do not choose it using held-out test errors. The
+package's `pfer_upper_bound_mb` is a Meinshausen--Buehlmann-type expression
+requiring additional assumptions, not an automatic false-discovery-rate
+guarantee. CPSS does not make the resulting SM an oracle: this example misses
+seven signals, and its selected null is false. Independent selection enables
+conditional inference **when the selected null is true**; it does not make
+every selected null true.
+
+CPSS is the repeated-selection wrapper, not the base penalty itself.
+`selector = "lasso"` uses LASSO inside each half; the optional
+`selector = "mcp"` sensitivity uses singleton-group MCP via `grpreg` with
+the same frequency-screen construction. Neither choice guarantees the best
+submodel. The displayed example uses LASSO throughout the selection stage.
+
 ### 3. Fit Ridge FM, the exact-null SM, and the shrinkage estimators
 
 Use the independent analysis sample. The Ridge penalty 0.25 is fixed for this
@@ -121,6 +207,24 @@ fit <- fit_cpss_ridge_shrinkage(
 methods <- c("FM", "SM", "PT", "S", "PS")
 estimates <- vapply(methods, function(m) coef(fit, method = m), numeric(p + 1L))
 ```
+
+Ridge FM fits all 1,000 predictors jointly; SM is refitted using only the
+three selected predictors and zero-padded to length 1,000. The first element
+returned by `coef()` is the original-scale **intercept**, not a selected
+predictor. Separate it when counting nonzero slopes:
+
+```r
+coefficient_summary <- data.frame(
+  Method = methods,
+  Slopes_returned = p,
+  Nonzero_slopes = colSums(abs(estimates[-1L, , drop = FALSE]) > 1e-8),
+  Intercept = unname(estimates[1L, ]), row.names = NULL
+)
+print(coefficient_summary, row.names = FALSE, digits = 5)
+```
+
+In this run Ridge FM has 1,000 nonzero slopes and SM has three. These are
+numerical counts at tolerance `1e-8`, not claims of statistical significance.
 
 ### 4. Inspect the test and interpolation weights
 
@@ -177,12 +281,14 @@ Reference output from HDMaxShrink 0.6.2, R 4.6.0 and glmnet 5.0:
 |S      |    0.6267|                   7.0017|   8.3888|
 |PS     |    0.6267|                   7.0017|   8.3888|
 
-![Independent-test MSE for FM, SM, PT, S and PS from one synthetic dataset.](man/figures/quickstart_test_mse.png)
-
 Sourcing the complete [quickstart.R](inst/examples/quickstart.R) defines
-`plot_quickstart()`, which draws this formatted chart. It is called automatically
+`plot_quickstart()`, which draws this three-panel chart. It is called automatically
 in an interactive session and can be called explicitly afterwards; it does not
-write a file. The chart and table come from the same run.
+write a file. The chart and table come from the same run. Panel A shows the
+top ten optional candidates ranked on selection data only; mandatory predictors
+are identified separately. Panel B compares all five held-out errors. Panel C
+shows the first 20 slopes, with the true-zero region shaded. Duplicate curves
+are labelled `FM = PT` and `S = PS` only because they coincide in this draw.
 
 SM has the lowest realized error here despite omitting signals: rejecting an
 exact restriction is not a prediction-risk ranking. PT equals FM because the
@@ -194,12 +300,11 @@ budgets are demonstration settings, not the paper's numerical-study settings.
 
 ### Interpretation and assumptions
 
-Within every complementary half, the response and optional candidate columns
-are centered and residualized against the mandatory design before the base
-selector is fitted. Mandatory variables are outside the CPSS frequency and
-PFER family. The final core is
-$`\widehat A=A_0\cup\widehat E`$; if the selected extension is empty it equals
-$`A_0`$, with no top-k fallback.
+Mandatory variables are outside the optional-candidate CPSS frequency and
+PFER (expected number of false selections) family. The steps above describe
+how the optional extension is constructed; they do not claim a new CPSS
+algorithm. The proposed method combines this independently selected submodel
+with the full-model endpoint and a max-test-calibrated shrinkage family.
 
 FM estimates all columns of $`X`$ jointly by direct dual Ridge. SM is
 recomputed only on $`X_{\widehat A}`$ with an economy-SVD Moore--Penrose
@@ -340,7 +445,16 @@ and second-moment calibration remain available explicitly with
 
 ## Prespecified-core square-root-LASSO example
 
+<details>
+<summary>Separate endpoint: square-root LASSO can set slopes to zero (not the Ridge demo above)</summary>
+
+This retained example deliberately keeps its original seed, coefficients and
+default penalty. A full-model fit considers every predictor; with an L1
+penalty it need not retain every predictor. The legacy function name does not
+select the endpoint: the explicit `full_endpoint` argument below does.
+
 ```r
+library(HDMaxShrink)
 set.seed(1)
 n <- 100
 p <- 1000
@@ -354,7 +468,7 @@ core_pattern <- c(
 beta[1:20] <- rep(core_pattern, 2)
 y <- drop(X %*% beta + rnorm(n))
 
-fit <- fit_partial_sqrt_lasso_shrinkage(
+sqrt_fit <- fit_partial_sqrt_lasso_shrinkage(
   X,
   y,
   core_set = 1:p1,
@@ -366,11 +480,24 @@ fit <- fit_partial_sqrt_lasso_shrinkage(
   bootstrap_seed = 20260820
 )
 
-print(fit)
-coef(fit, method = "FM")
-coef(fit, method = "SM")
-coef(fit, method = "PS")
+print(sqrt_fit)
+sqrt_fm <- coef(sqrt_fit, method = "FM")
+data.frame(
+  Input_predictors = ncol(X),
+  Nonzero_slopes = sum(abs(sqrt_fm[-1L]) > 1e-8),
+  Intercept = unname(sqrt_fm[1L])
+)
+coef(sqrt_fit, method = "SM")
+coef(sqrt_fit, method = "PS")
 ```
+
+With the reference versions above, this particular example gives **zero
+nonzero FM slopes**, not one selected predictor: its nonzero intercept must
+not be counted as a variable. The default penalty is about 0.42888, above the
+zero-slope KKT threshold of about 0.39266 on the standardized data. Thus the
+zero-slope solution satisfies the optimality condition; it is not a solver
+failure. This does not describe the Ridge FM in the main example. No penalty
+or seed was changed to make the output look more favorable.
 
 Here all 20 coordinates in the prespecified core are active. Under the exact
 null, SM is the intended correct-restriction benchmark; the estimator is not
@@ -382,6 +509,8 @@ assertion. Conditional on fixed $`X`$, the exact-null max-partial-$`t`$ test
 needs a prespecified core, nondegenerate residualized tested directions, and
 homoskedastic Gaussian errors; it does not require independent columns of
 $`X`$.
+
+</details>
 
 ## Risk convention
 
