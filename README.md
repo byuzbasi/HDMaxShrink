@@ -1,5 +1,10 @@
 # HDMaxShrink
 
+Methodology preprint: [Max-Test-Calibrated Stein Shrinkage with Honest Submodel
+Selection in Ultra-High-Dimensional Regression](https://arxiv.org/abs/2609.23070)
+(Bahadır Yüzbaşı, 2026; arXiv:2609.23070, stat.ME). The preprint includes
+supplementary material.
+
 HDMaxShrink is a research package for pretest--Stein estimation in sparse
 linear models with $`p\gg n`$. It provides full-model (FM), submodel (SM),
 preliminary-test (PT), Stein-form (S), and positive-part (PS) estimates.
@@ -332,3 +337,28 @@ For function arguments and examples, use R help, such as
 Report software problems through [GitHub Issues](https://github.com/byuzbasi/HDMaxShrink/issues).
 Use `citation("HDMaxShrink")` for the software reference. The package is
 licensed under GPL version 3 or later, as declared in `DESCRIPTION`.
+
+## Cite the method and software
+
+For the methodological framework, cite:
+
+Yüzbaşı, B. (2026). *Max-Test-Calibrated Stein Shrinkage with Honest Submodel
+Selection in Ultra-High-Dimensional Regression*. arXiv:2609.23070 [stat.ME].
+[Preprint](https://arxiv.org/abs/2609.23070).
+
+```bibtex
+@misc{yuzbasi2026max,
+  author        = {Y{\"u}zba{\c{s}}{\i}, Bahad{\i}r},
+  title         = {{Max-Test-Calibrated Stein Shrinkage with Honest Submodel Selection in Ultra-High-Dimensional Regression}},
+  year          = {2026},
+  eprint        = {2609.23070},
+  archivePrefix = {arXiv},
+  primaryClass  = {stat.ME},
+  doi           = {10.48550/arXiv.2609.23070},
+  url           = {https://arxiv.org/abs/2609.23070}
+}
+```
+
+Use `citation("HDMaxShrink")` to obtain both the software reference and the
+methodology-preprint reference. Cite the package version used in your analysis;
+the preprint is not a journal-publication record.

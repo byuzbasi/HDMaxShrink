@@ -1,4 +1,4 @@
-citHeader("To cite HDMaxShrink in publications, use:")
+citHeader("To cite HDMaxShrink and its methodological framework, use:")
 
 bibentry(
   bibtype = "Manual",
@@ -6,6 +6,19 @@ bibentry(
   author = person("Bahadir", "Yuzbasi"),
   year = "2026",
   note = paste("R package version", meta$Version)
+)
+
+bibentry(
+  bibtype = "Misc",
+  title = paste(
+    "Max-Test-Calibrated Stein Shrinkage with Honest Submodel Selection",
+    "in Ultra-High-Dimensional Regression"
+  ),
+  author = person("Bahadır", "Yüzbaşı"),
+  year = "2026",
+  note = "arXiv preprint arXiv:2609.23070 [stat.ME]",
+  doi = "10.48550/arXiv.2609.23070",
+  url = "https://arxiv.org/abs/2609.23070"
 )
 
 citFooter(paste(

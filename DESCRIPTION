@@ -31,7 +31,8 @@ Description: Fits test-guided shrinkage estimators in sparse linear models
     restriction-projection frameworks remain available as sensitivity and
     reproducibility modes.
 License: GPL (>= 3)
-URL: https://github.com/byuzbasi/HDMaxShrink
+URL: https://github.com/byuzbasi/HDMaxShrink,
+    https://arxiv.org/abs/2609.23070
 BugReports: https://github.com/byuzbasi/HDMaxShrink/issues
 Encoding: UTF-8
 Depends: R (>= 4.1.0)
