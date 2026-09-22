@@ -41,46 +41,158 @@ Run the small, self-contained example after installation:
 source(system.file("examples", "quickstart.R", package = "HDMaxShrink"))
 ```
 
-The example uses independent selection and analysis samples with 120
-predictors and 60 observations per sample. It is an executable demonstration,
-not a reproduction of the manuscript's production study. It returns FM, SM,
-PT, S and PS coefficient estimates.
+The example generates 1,000 predictors with independent selection and analysis
+samples of 100 observations each, plus 200 untouched test observations. It prints
+the selected submodel, test diagnostics and FM/SM/PT/S/PS results, and draws a
+test-error plot in an interactive R session. It is one toy dataset, not a
+reproduction of the manuscript's production study. The complete script is
+[quickstart.R](inst/examples/quickstart.R); the steps below can also be run in order.
 
 ## Current workflow: CPSS-guided submodel and Ridge full model
 
-Use an independent selection sample to learn a stable optional extension
-conditional on required predictors $`A_0`$. The following template assumes
-that the named predictors and the selection/analysis datasets already exist;
-use the self-contained example above for a runnable starting point.
+### 1. Generate data with known coefficients
+
+The design entries and errors below are independent standard Gaussian draws.
+Only the first ten coefficients are nonzero; the generating intercept is zero.
+Separate data are used for selection, estimation and evaluation. The true
+coefficient vector is used for data generation and scoring, never supplied to
+the selector or estimator.
+
+```r
+library(HDMaxShrink)
+set.seed(20260914)
+n <- 100L
+p <- 1000L
+n_test <- 200L
+beta <- c(1.50, 1.25, 1.00, 0.90, 0.80,
+          -1.25, -1.00, -0.90, 0.75, -0.75, rep(0, p - 10L))
+make_sample <- function(rows = n) {
+  X <- matrix(rnorm(rows * p), nrow = rows, ncol = p)
+  colnames(X) <- paste0("x", seq_len(p))
+  list(X = X, y = drop(X %*% beta + rnorm(rows)))
+}
+selection_data <- make_sample()
+analysis_data <- make_sample()
+test_data <- make_sample(n_test)
+```
+
+### 2. Learn the submodel from selection data only
+
+Assume that only `x1` and `x2` are required predictors known in advance. CPSS
+can add predictors from the remaining 998 columns. The other eight signals
+are not given to it, and successful support recovery is not assumed. This
+small demonstration uses 20 complementary pairs, a base-selection budget of
+10 optional variables and a stability threshold of 0.60.
 
 ```r
 selection <- cpss_select_core(
-  X_selection, y_selection,
-  selector = "lasso",       # "mcp" is a sensitivity selector
-  complementary_pairs = 50,
-  base_selection_size = 20,
-  stability_threshold = 0.60,
-  seed = 20260825,
-  mandatory_core = c("lineage_2", "lineage_3", "MSIScore"),
-  candidate_set = grep("^expr::", colnames(X_selection))
+  selection_data$X, selection_data$y,
+  selector = "lasso", mandatory_core = 1:2,
+  complementary_pairs = 20L, base_selection_size = 10L,
+  stability_threshold = 0.60, path_points = 30L, seed = 20260915L
 )
+core_table <- selection$stability_table[
+  selection$stability_table$selected_for_core,
+  c("feature", "core_role", "stability_frequency"), drop = FALSE
+]
+print(core_table, row.names = FALSE)
 ```
 
-Then use a separate analysis sample:
+In the reference run, the selected core is `x1, x2, x6`. The first two are
+mandatory, with `NA` selection frequencies; `x6` is a CPSS extension with
+frequency 0.650. Thus the selected submodel still omits seven true signals.
+
+### 3. Fit Ridge FM, the exact-null SM, and the shrinkage estimators
+
+Use the independent analysis sample. The Ridge penalty 0.25 is fixed for this
+illustration, not selected using test errors. The package centers and RMS-scales
+the analysis predictors and response internally, then returns coefficients
+and predictions on the original scale. Do not scale the three samples jointly.
+The conditional test uses 199 Gaussian draws and inverse-null-moment calibration.
 
 ```r
 fit <- fit_cpss_ridge_shrinkage(
-  X_analysis, y_analysis,
+  analysis_data$X, analysis_data$y,
   selection = selection,
   ridge_lambda = 0.25,
-  bootstrap_B = 999,
-  bootstrap_seed = 20260826
+  bootstrap_B = 199L, bootstrap_seed = 20260916L,
+  shrinkage_calibration = "inverse_moment"
 )
-
-coef(fit, method = "FM")
-coef(fit, method = "SM")
-coef(fit, method = "PS")
+methods <- c("FM", "SM", "PT", "S", "PS")
+estimates <- vapply(methods, function(m) coef(fit, method = m), numeric(p + 1L))
 ```
+
+### 4. Inspect the test and interpolation weights
+
+Here `p1` is the selected submodel size and `q` is the number of excluded
+coordinates. The weight below multiplies the difference FM minus SM: zero
+gives SM and one gives FM. The S weight can be negative; PS truncates it at
+zero. Test rejection makes PT equal FM but does not force PS to equal FM.
+
+```r
+test_summary <- data.frame(
+  n = n, p = p, p1 = length(fit$core_set), q = length(fit$tested_set),
+  T_max = fit$inference$statistic, p_value = fit$inference$p_value,
+  reject = fit$reject, kappa = fit$inference$shrinkage_calibration
+)
+print(test_summary, row.names = FALSE, digits = 5)
+full_weight <- c(FM = 1, SM = 0, PT = as.numeric(fit$reject),
+                 S = fit$shrinkage$stein_weight,
+                 PS = fit$shrinkage$positive_weight)
+```
+
+The reference run gives `p1 = 3`, `q = 997`, `T_max = 5.7893`,
+`p_value = 0.005` and `kappa = 12.5100`. The null is rejected at 0.05.
+The Monte Carlo p-value has resolution 1/200 in this deliberately small example.
+
+### 5. Evaluate once on untouched test data
+
+Coefficient squared loss sums the squared errors over all 1,000 slopes and
+excludes the fitted intercept. It is a realized loss, **not** a Monte Carlo
+estimate of coefficient MSE. Test MSE averages squared prediction errors over
+the 200 independent test observations; predictions include the back-transformed
+intercept. All five methods use the same test rows.
+
+```r
+predictions <- vapply(methods, function(m) {
+  predict(fit, newdata = test_data$X, method = m)
+}, numeric(n_test))
+results_table <- data.frame(
+  Method = methods,
+  Full_weight = unname(full_weight[methods]),
+  Coefficient_loss = colSums((estimates[-1L, , drop = FALSE] - beta)^2),
+  Test_MSE = colMeans((predictions - test_data$y)^2),
+  row.names = NULL
+)
+print(results_table, row.names = FALSE, digits = 5)
+```
+
+Reference output from HDMaxShrink 0.6.2, R 4.6.0 and glmnet 5.0:
+
+|Method | FM weight| Coefficient squared loss| Test MSE|
+|:------|---------:|------------------------:|--------:|
+|FM     |    1.0000|                   9.8118|  11.0448|
+|SM     |    0.0000|                   5.5443|   6.8786|
+|PT     |    1.0000|                   9.8118|  11.0448|
+|S      |    0.6267|                   7.0017|   8.3888|
+|PS     |    0.6267|                   7.0017|   8.3888|
+
+![Independent-test MSE for FM, SM, PT, S and PS from one synthetic dataset.](man/figures/quickstart_test_mse.png)
+
+Sourcing the complete [quickstart.R](inst/examples/quickstart.R) defines
+`plot_quickstart()`, which draws this formatted chart. It is called automatically
+in an interactive session and can be called explicitly afterwards; it does not
+write a file. The chart and table come from the same run.
+
+SM has the lowest realized error here despite omitting signals: rejecting an
+exact restriction is not a prediction-risk ranking. PT equals FM because the
+test rejects; S and PS coincide because the S weight is positive. These numbers
+illustrate the workflow, not support-recovery guarantees, uniform dominance or
+a general performance ranking. No seed search or test-based tuning was used.
+Results can differ across software versions; the small CPSS and Gaussian-draw
+budgets are demonstration settings, not the paper's numerical-study settings.
+
+### Interpretation and assumptions
 
 Within every complementary half, the response and optional candidate columns
 are centered and residualized against the mandatory design before the base
