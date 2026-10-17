@@ -1,4 +1,10 @@
-# HDMaxShrink
+# HDMaxShrink <img src="man/figures/logo.svg" align="right" width="120" alt="HDMaxShrink full and submodel logo" />
+
+[Documentation](https://byuzbasi.github.io/HDMaxShrink/) · [Get started](https://byuzbasi.github.io/HDMaxShrink/articles/getting-started.html) · [Reference](https://byuzbasi.github.io/HDMaxShrink/reference/index.html)
+
+![HDMaxShrink: independent selection, full and submodel estimates, test-guided shrinkage](man/figures/banner.svg)
+
+*Conceptual workflow illustration, not a performance comparison.*
 
 Methodology preprint: [Max-Test-Calibrated Stein Shrinkage with Honest Submodel
 Selection in Ultra-High-Dimensional Regression](https://arxiv.org/abs/2609.23070)
@@ -47,7 +53,7 @@ the selected submodel, coefficient counts, test diagnostics and FM/SM/PT/S/PS
 results. In an interactive R session it also draws a three-panel figure showing
 selection frequencies, held-out errors and coefficient estimates. It is one toy dataset, not a
 reproduction of the manuscript's production study. The complete script is
-[quickstart.R](inst/examples/quickstart.R); the steps below can also be run in order.
+[quickstart.R](https://github.com/byuzbasi/HDMaxShrink/blob/main/inst/examples/quickstart.R); the steps below can also be run in order.
 
 ## Current workflow: CPSS-guided submodel and Ridge full model
 
@@ -281,7 +287,7 @@ Reference output from HDMaxShrink 0.6.2, R 4.6.0 and glmnet 5.0:
 |S      |    0.6267|                   7.0017|   8.3888|
 |PS     |    0.6267|                   7.0017|   8.3888|
 
-Sourcing the complete [quickstart.R](inst/examples/quickstart.R) defines
+Sourcing the complete [quickstart.R](https://github.com/byuzbasi/HDMaxShrink/blob/main/inst/examples/quickstart.R) defines
 `plot_quickstart()`, which draws this three-panel chart. It is called automatically
 in an interactive session and can be called explicitly afterwards; it does not
 write a file. The chart and table come from the same run. Panel A shows the
@@ -574,7 +580,7 @@ different MCP solvers.
 ## Documentation and support
 
 For function arguments and examples, use R help, such as
-`?fit_cpss_ridge_shrinkage`, or read the [package vignette](vignettes/HDMaxShrink.Rmd).
+`?fit_cpss_ridge_shrinkage`, or read the [package vignette](https://byuzbasi.github.io/HDMaxShrink/articles/HDMaxShrink.html).
 Report software problems through [GitHub Issues](https://github.com/byuzbasi/HDMaxShrink/issues).
 Use `citation("HDMaxShrink")` for the software reference. The package is
 licensed under GPL version 3 or later, as declared in `DESCRIPTION`.

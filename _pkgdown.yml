@@ -1,0 +1,60 @@
+url: https://byuzbasi.github.io/HDMaxShrink/
+template:
+  bootstrap: 5
+  math-rendering: katex
+  bslib:
+    primary: '#31557B'
+    bg: '#FCFCF9'
+    fg: '#183847'
+    base_font: 'sans-serif'
+    heading_font: 'sans-serif'
+    code_font: 'monospace'
+home:
+  title: HDMaxShrink
+navbar:
+  structure:
+    left: [intro, articles, reference, news]
+    right: [search, author, github]
+  components:
+    intro:
+      text: Get started
+      href: articles/getting-started.html
+    author:
+      text: Research hub
+      href: https://byuzbasi.github.io/en/software/
+    github:
+      icon: fab fa-github
+      href: https://github.com/byuzbasi/HDMaxShrink
+      aria-label: GitHub repository
+news:
+  cran_dates: false
+articles:
+  - title: Guides
+    navbar: ~
+    contents:
+      - getting-started
+      - HDMaxShrink
+      - data-and-reproduction
+reference:
+  - title: Current CPSS–SM / Ridge workflow
+    contents:
+      - cpss_select_core
+      - fit_cpss_sm
+      - fit_cpss_ridge_shrinkage
+  - title: Estimates and predictions
+    contents:
+      - coef.hd_shrinkage_fit
+      - predict.hd_shrinkage_fit
+  - title: Retained frameworks and inference
+    contents:
+      - fit_hd_shrinkage
+      - fit_partial_sqrt_lasso_shrinkage
+      - fit_ridge_mcp_shrinkage
+      - sqrt_lasso_hd
+      - estimate_precision_rows
+      - max_score_test_hd
+      - max_test_hd
+  - title: Package and low-level numerical utilities
+    contents:
+      - HDMaxShrink-package
+      - starts_with('cpp_')

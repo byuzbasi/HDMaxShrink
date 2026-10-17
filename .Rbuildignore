@@ -9,3 +9,9 @@
 ^src/symbols\.rds$
 ^\.git$
 ^\.gitignore$
+^_pkgdown[.]yml$
+^pkgdown$
+^docs$
+^CITATION[.]cff$
+^CONTRIBUTING[.]md$
+^[.]github$

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "Please cite the software version used and the associated methods preprint."
+type: software
+title: "HDMaxShrink: Test-Guided Shrinkage for High-Dimensional Linear Models"
+version: 0.6.2
+license: GPL-3.0-or-later
+repository-code: https://github.com/byuzbasi/HDMaxShrink
+authors:
+  - family-names: Yuzbasi
+    given-names: Bahadir
+references:
+  - type: generic
+    title: "Max-Test-Calibrated Stein Shrinkage with Honest Submodel Selection in Ultra-High-Dimensional Regression"
+    authors:
+      - family-names: Yüzbaşı
+        given-names: Bahadır
+    year: 2026
+    doi: 10.48550/arXiv.2609.23070
+    url: https://arxiv.org/abs/2609.23070
+    notes: "arXiv preprint, not a journal publication."

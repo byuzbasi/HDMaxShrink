@@ -1,0 +1,19 @@
+/* Documentation presentation only; no external fonts or tracking. */
+:root { --showcase-ink: #183847; }
+body { line-height: 1.72; }
+.navbar { border-bottom: 1px solid #d9e5e5; }
+.navbar-brand { font-weight: 700; letter-spacing: -.03em; }
+main h1 { letter-spacing: -.045em; line-height: 1.15; margin-bottom: 1.4rem; }
+main h2 { margin-top: 2.7rem; padding-top: .7rem; border-top: 1px solid #dce6e7; letter-spacing: -.025em; }
+main h3 { margin-top: 1.65rem; }
+main img { max-width: 100%; height: auto; }
+main pre { border-radius: .6rem; font-size: .86rem; }
+main table { width: 100%; font-size: .94rem; }
+main th, main td { padding: .6rem; vertical-align: top; }
+main .caption { font-size: .9rem; color: #526779; }
+main .math.display { max-width: 100%; overflow-x: auto; }
+@media (max-width: 767px) {
+  main img[align="right"] { width: 80px; }
+  main table { display: block; overflow-x: auto; }
+  main pre { font-size: .8rem; }
+}
